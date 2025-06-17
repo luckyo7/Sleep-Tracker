@@ -40,14 +40,78 @@ float rlh(Frame f, float alpha) {
   return rms(fl) / rms(fh);
 }
 
-float std(Frame f) {
-  // compute the standard deviation for a frame
+float mean(const Frame &f) {
+  const float *samples = f.samples;
+  float mean = 0.0;
+  for (int i = 0; i < SAMPLE_COUNT; i++) {
+    mean += samples[i];
+  }
+
+  mean /= SAMPLE_COUNT;
+
+  return mean;
 }
 
-float variance(Window w) {
+float std(const Frame &f) {
+  // compute the standard deviation for a frame
+  // std = sqrt(1/N*sum((s_i - mean)^2))
+
+  const float *samples = f.samples;
+  float std = 0.0;
+  float fMean = mean(f);
+  for (int i = 0; i < SAMPLE_COUNT; i++) {
+    std += (samples[i] - fMean) * (samples[i] - fMean);
+  }
+  std /= SAMPLE_COUNT;
+
+  std = sqrt(std);
+
+  return std;
+}
+
+void computeVariance(Window &w) {
   // compute the normalized std for a window
+  // modify in place
   // std_norm_i = ( std_i - std_mean ) / (std_mean - std_min)
 
   // 1. compute mean/min std
-  // 2. iterate through frames and normalized std
+  // 2. iterate through frames and normalize std
+  float std_mean = 0.0;
+  float std_min = 1000.0; // sorry for all the pythonic code it just looks some
+                          // much nicer to me
+  float std_arr[WINDOW_SIZE];
+  for (int i = 0; i < WINDOW_SIZE; i++) {
+    Frame *f = w.frames[i];
+    float stdF = std(*f); // first time dereferencing a pointer!
+    std_arr[i] = stdF;
+
+    std_mean += stdF;
+
+    if (stdF < std_min) {
+      std_min = stdF;
+    }
+  }
+
+  std_mean /= WINDOW_SIZE;
+
+  // TODO:
+  // could I do all of this in one for loop?
+  // not sure how to deal with mean
+  // rearrange with algebra?
+
+  // normalize std_i
+  for (int i = 0; i < WINDOW_SIZE; i++) {
+    Frame *f = w.frames[i];
+
+    float std_i = std_arr[i];
+
+    float denom = std_mean - std_min;
+    denom = denom < 1e-6 ? 1.0 : denom; // use 1.0 if < 1e-6; avoid div 0 error
+
+    float std_norm = (std_i - std_mean) /
+                     (std_mean - std_min); // normalized std; see iSleep paper
+
+    // modify in place
+    f->var = std_norm; // pointer syntax is so weird looking
+  }
 }
