@@ -2,6 +2,7 @@
 // normalize the features for a window too
 
 #include <Arduino.h>
+#include <noiseModel.h>
 #include <sampling.h>
 
 float rms(Frame f) {
@@ -73,6 +74,7 @@ float std(const Frame &f) {
 void computeVariance(Window &w) {
   // compute the normalized std for a window
   // modify in place
+  // also computes std
   // std_norm_i = ( std_i - std_mean ) / (std_mean - std_min)
 
   // 1. compute mean/min std
@@ -84,6 +86,7 @@ void computeVariance(Window &w) {
   for (int i = 0; i < WINDOW_SIZE; i++) {
     Frame *f = w.frames[i];
     float stdF = std(*f); // first time dereferencing a pointer!
+    f->std = stdF;
     std_arr[i] = stdF;
 
     std_mean += stdF;
@@ -116,14 +119,35 @@ void computeVariance(Window &w) {
   }
 }
 
-void normalizeRMS(Window &w) {
+void normalizeFeatures(Window &w) {
+  // normalize the features for each frame in a window w
+  // modified in place
+
+  // Noise model values
+  float meanRMS = noiseModel.meanRMS;
+  float stdRMS = noiseModel.stdRMS;
+
+  float meanRLH = noiseModel.meanRLH;
+  float stdRLH = noiseModel.stdRLH;
+
+  float meanVar = noiseModel.meanVar;
+  float stdVar = noiseModel.stdVar;
+  // Noise model values
+
+  // iterate through frames to modify in place
   for (int i = 0; i < WINDOW_SIZE; i++) {
     Frame *f = w.frames[i];
 
-    float fRMS = rms(*f);
+    float frameRMS = f->rms;
+    float frameRLH = f->rlh;
+    float frameVar = f->var;
 
-    // TODO: add noise model
-    float meanRMS;
-    float meanSTD;
+    float normRMS = (frameRMS - meanRMS) / stdRMS;
+    float normRLH = (frameRLH - meanRLH) / stdRLH;
+    float normVar = (frameVar - meanVar) / stdVar;
+
+    f->rms = normRMS;
+    f->rlh = normRLH;
+    f->var = normVar;
   }
 }

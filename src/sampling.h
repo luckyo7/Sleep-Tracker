@@ -10,6 +10,7 @@ struct Frame {
   float samples[SAMPLE_COUNT];
   float rms;
   float rlh;
+  float std;
   float var; // normalized std within a window
 };
 
