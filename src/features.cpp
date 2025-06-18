@@ -1,4 +1,5 @@
 // calculate noise features of frame
+// normalize the features for a window too
 
 #include <Arduino.h>
 #include <sampling.h>
@@ -94,7 +95,6 @@ void computeVariance(Window &w) {
 
   std_mean /= WINDOW_SIZE;
 
-  // TODO:
   // could I do all of this in one for loop?
   // not sure how to deal with mean
   // rearrange with algebra?
@@ -113,5 +113,17 @@ void computeVariance(Window &w) {
 
     // modify in place
     f->var = std_norm; // pointer syntax is so weird looking
+  }
+}
+
+void normalizeRMS(Window &w) {
+  for (int i = 0; i < WINDOW_SIZE; i++) {
+    Frame *f = w.frames[i];
+
+    float fRMS = rms(*f);
+
+    // TODO: add noise model
+    float meanRMS;
+    float meanSTD;
   }
 }
