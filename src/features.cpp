@@ -24,7 +24,7 @@ float rlh(Frame f, float alpha) {
   // compute the ratio of low to high band energy
   // rlf = rms(fl)/rms(fh) where fl and fl are f after low/high pass filter
   float *samples = f.samples;
-  Frame fl = {*f.samples};
+  Frame fl = Frame(f.samples);
 
   // apply low-pass filter to fl
   for (int i = 1; i < SAMPLE_COUNT; i++) {
@@ -32,7 +32,7 @@ float rlh(Frame f, float alpha) {
     fl.samples[i] = sl_i1 + alpha * (samples[i] - sl_i1);
   }
 
-  Frame fh = {*f.samples};
+  Frame fh = Frame(f.samples);
   // apply high-pass filter to fh
   for (int i = 1; i < SAMPLE_COUNT; i++) {
     float sh_i1 = fh.samples[i - 1];
@@ -120,8 +120,12 @@ void computeVariance(Window &w) {
 }
 
 void normalizeFeatures(Window &w) {
-  // normalize the features for each frame in a window w
-  // modified in place
+  // normalize the features for each frame in a window w // modified in place
+
+  if (w.isNormal) {
+    Serial.println("Window is already normalized!");
+    return;
+  }
 
   // Noise model values
   float meanRMS = noiseModel.meanRMS;
@@ -138,6 +142,11 @@ void normalizeFeatures(Window &w) {
   for (int i = 0; i < WINDOW_SIZE; i++) {
     Frame *f = w.frames[i];
 
+    if (f->isNormal) {
+      Serial.println("Frame is already normalized!");
+      continue;
+    }
+
     float frameRMS = f->rms;
     float frameRLH = f->rlh;
     float frameVar = f->var;
@@ -149,5 +158,8 @@ void normalizeFeatures(Window &w) {
     f->rms = normRMS;
     f->rlh = normRLH;
     f->var = normVar;
+    f->isNormal = true;
   }
+
+  w.isNormal = true;
 }
